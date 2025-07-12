@@ -1,0 +1,165 @@
+#include "fin-pch.h"
+#include "fin-platform.h"
+#include "fin-rpc.h"
+#include "fin-orderbook.h"
+#include "fin-replay.h"
+#include "fin-spsc-queue.h"
+
+#include <random>
+std::random_device rd;
+std::mt19937 gen( rd() );
+std::uniform_int_distribution<u64> dis( 1, std::numeric_limits<u64>::max() );
+
+/*
+    ======= Some AI ideas that I think will be interesting to implement/explore =======
+
+    1. Order Matching Engine
+    * (DONE) Order Matching Engine: Basic implementation of price-time priority, partial fills, cancellations, etc.
+    * (DONE) Latency Modeling: Simulate geographic latency between traders and the exchange (e.g. delay ESP32 responses).
+
+    2. Analytics & Quant Research
+    * (DONE) Replay Engine: Record all order flow and allow replaying for backtesting strategies.
+    * Microstructure Metrics: Order-to-trade ratio, bid-ask spread, volume, Price impact per order size, etc.
+    * Order Flow Analysis: Visualize the impact of spoofing, front-running, etc.
+
+    3. Architecture & Distributed Systems
+    * Clustered Matching Engine: Use message queues or gRPC to shard matching engines per symbol.
+    * Exchange Gateway: Separate matching from networking, simulate FIX or ITCH protocol compatibility.
+    * Horizontal Scaling: Add more ESP32 “trader” nodes (or even Raspberry Pi clusters), simulate co-location vs. edge trading.
+
+    4. Optimization
+    * Benchmark current orderbook implementation
+    * Explore different data structures / algorithms for the orderbook
+    * Explore better multithreading / async implementation
+    * Explore lock free / lockless implementation.
+    * Explore latency optimization.
+
+    5. Visualization & Frontend
+    * Live Order Book UI (React + WebSockets)
+    * Heatmaps of volume, latency, or volatility
+    * Dashboard for Traders with latency, fill rate, PnL per node
+
+    6. Trading Strategy Framework
+    * Implement a simple trading strategy framework that can be used to test and backtest strategies.
+
+    7. Machine Learning Angle
+    * Predict short-term price movement from L1/L2 data
+    * Classify trader behavior (e.g. aggressive vs passive)
+    * Reinforcement learning: Agent that learns to trade profitably in your market
+*/
+
+using namespace fin;
+
+int main() {
+
+    RpcTable table;
+    std::unordered_map<int, OrderBook> books;
+
+    Symbol aapl( "AAPL" );
+    Symbol msft( "MSFT" );
+
+    books[aapl.AsInt()] = OrderBook( aapl );
+    books[msft.AsInt()] = OrderBook( msft );
+
+    std::string replayFilename = std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() );
+    ReplayEngine replay( replayFilename );
+
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&books, &replay]( OrderEntry entry )
+        {
+            int symbol = entry.symbol.AsInt();
+            if ( books.contains( symbol ) == false ) {
+                return;
+            }
+
+            entry.id = dis( gen );
+            entry.time = std::chrono::system_clock::now().time_since_epoch().count();
+            books[symbol].AddBid( entry );
+
+            replay.Append( RpcCall::PlaceOrder_Bid );
+            replay.Append( entry );
+
+            PacketBuffer buffer;
+            buffer.Write( entry.id );
+            TCPServerSendPacket( buffer );
+        } ) );
+
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&books, &replay]( OrderEntry entry )
+        {
+            int symbol = entry.symbol.AsInt();
+            if ( books.contains( symbol ) == false ) {
+                return;
+            }
+
+            entry.id = dis( gen );
+            entry.time = std::chrono::system_clock::now().time_since_epoch().count();
+            books[symbol].AddAsk( entry );
+
+            replay.Append( RpcCall::PlaceOrder_Ask );
+            replay.Append( entry );
+
+            PacketBuffer buffer;
+            buffer.Write( entry.id );
+
+            TCPServerSendPacket( buffer );
+        } ) );
+
+
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64, Symbol>( [&books, &replay]( i64 id, Symbol symbol )
+        {
+            if ( books.contains( symbol.AsInt() ) == false ) {
+                return;
+            }
+
+            bool result = books[symbol.AsInt()].RemoveBid( id );
+
+            replay.Append( RpcCall::CancelOrder_Bid );
+            replay.Append( id );
+
+            PacketBuffer buffer;
+            buffer.Write( result );
+            TCPServerSendPacket( buffer );
+        } ) );
+
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64, Symbol>( [&books, &replay]( i64 id, Symbol symbol )
+        {
+            if ( books.contains( symbol.AsInt() ) == false ) {
+                return;
+            }
+
+            bool result = books[symbol.AsInt()].RemoveAsk( id );
+
+            replay.Append( RpcCall::CancelOrder_Ask );
+            replay.Append( id );
+
+            PacketBuffer buffer;
+            buffer.Write( result );
+            TCPServerSendPacket( buffer );
+        } ) );
+
+    TCPServerSocket( "54000" );
+    UDPServerSocket( "54001", "239.255.0.1" );
+
+    while ( true ) {
+        std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
+        PacketBuffer recBuffer = {};
+        if ( TCPServerReceivePacket( recBuffer ) ) {
+            fin::RpcCallData rpcCall( recBuffer.data, recBuffer.length );
+            table.Call( rpcCall );
+        }
+
+        for ( auto & [symbol, book] : books ) {
+            OrderEntry bestBid = {};
+            OrderEntry bestAsk = {};
+            book.GetL1MarketData( bestBid, bestAsk );
+
+            PacketBuffer sendBuffer = {};
+            sendBuffer.Write( symbol );
+            sendBuffer.Write( bestBid );
+            sendBuffer.Write( bestAsk );
+            UDPServerMulticastPacket( sendBuffer );
+        }
+    }
+
+    return 0;
+}
+

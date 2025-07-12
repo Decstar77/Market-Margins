@@ -1,0 +1,199 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #181c23;
+    color: #e0e6ed;
+}
+
+/* WebSocket connection status indicator */
+body::before {
+    content: '';
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #e53935;
+    z-index: 1000;
+    transition: background-color 0.3s ease;
+}
+
+body.ws-connected::before {
+    background: #4caf50;
+}
+.container {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    grid-template-rows: 80px 1fr;
+    grid-template-areas:
+        "header header header"
+        "sidebar-left main sidebar-right";
+    height: 100vh;
+}
+.header {
+    grid-area: header;
+    background: #232936;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #232936;
+    box-shadow: 0 2px 8px #0002;
+}
+.stats {
+    display: flex;
+    gap: 32px;
+    font-size: 1.1rem;
+}
+.stats .price {
+    color: #4caf50;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.stats .price.price-up {
+    color: #4caf50;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.stats .price.price-down {
+    color: #e53935;
+    transform: scale(1.1);
+    text-shadow: 0 0 10px rgba(229, 57, 53, 0.5);
+}
+.stats .change.up {
+    color: #4caf50;
+}
+.stats .change.down {
+    color: #e53935;
+}
+.sidebar.left {
+    grid-area: sidebar-left;
+    background: #20232b;
+    border-right: 1px solid #232936;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+.pairs h2, .transactions h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #90caf9;
+}
+.pairs ul, .transactions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.pairs li, .transactions li {
+    padding: 6px 0;
+    border-bottom: 1px solid #232936;
+    font-size: 1rem;
+}
+.pairs li:last-child, .transactions li:last-child {
+    border-bottom: none;
+}
+.main {
+    grid-area: main;
+    background: #181c23;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.chart {
+    background: #232936;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px #0003;
+    padding: 24px;
+    width: 90%;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.chart h2 {
+    color: #90caf9;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.chart canvas {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.sidebar.right {
+    grid-area: sidebar-right;
+    background: #20232b;
+    border-left: 1px solid #232936;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.orderbook h2 {
+    color: #90caf9;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+.orders {
+    display: flex;
+    gap: 16px;
+}
+.buy-orders, .sell-orders {
+    flex: 1;
+}
+.buy-orders h3 {
+    color: #4caf50;
+    margin-bottom: 6px;
+}
+.sell-orders h3 {
+    color: #e53935;
+    margin-bottom: 6px;
+}
+.buy-orders ul, .sell-orders ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.buy-orders li, .sell-orders li {
+    padding: 4px 0;
+    font-size: 1rem;
+    border-bottom: 1px solid #232936;
+}
+.buy-orders li:last-child, .sell-orders li:last-child {
+    border-bottom: none;
+}
+@media (max-width: 1100px) {
+    .container {
+        grid-template-columns: 180px 1fr 200px;
+    }
+    .chart {
+        width: 100%;
+        min-width: 0;
+        padding: 12px;
+    }
+}
+@media (max-width: 800px) {
+    .container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 80px auto auto auto;
+        grid-template-areas:
+            "header"
+            "sidebar-left"
+            "main"
+            "sidebar-right";
+    }
+    .sidebar.left, .sidebar.right {
+        border: none;
+        padding: 12px 8px;
+    }
+    .main {
+        padding: 8px 0;
+    }
+} 

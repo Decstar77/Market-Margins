@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Terminal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <!-- 1. Top center: Statistical info -->
+            <div class="stats">
+                <div>USDT-MATIC</div>
+                <div>Price: <span class="price">0.9676</span></div>
+                <div>24h Change: <span class="change up">+2.35%</span></div>
+                <div>24h High: 1.02</div>
+                <div>24h Low: 0.91</div>
+                <div>Volume: 1,234,567</div>
+            </div>
+        </header>
+        <aside class="sidebar left">
+            <!-- 2. Left: Trading pairs and last transactions -->
+            <div class="pairs">
+                <h2>Trading Pairs</h2>
+                <ul>
+                    <li>USDT-MATIC</li>
+                    <li>USDT-BTC</li>
+                    <li>USDT-ETH</li>
+                    <li>USDT-ADA</li>
+                    <li>USDT-XRP</li>
+                    <li>USDT-SOL</li>
+                </ul>
+            </div>
+            <div class="transactions">
+                <h2>Last Transactions</h2>
+                <ul>
+                    <li>Buy 0.95 @ 100</li>
+                    <li>Sell 0.96 @ 50</li>
+                    <li>Buy 0.97 @ 200</li>
+                    <li>Sell 0.98 @ 75</li>
+                </ul>
+            </div>
+        </aside>
+        <main class="main">
+            <!-- 4. Center: Trading chart (dummy) -->
+            <div class="chart">
+                <h2>Trading Chart</h2>
+                <canvas id="dummyChart" ></canvas>
+            </div>
+        </main>
+        <aside class="sidebar right">
+            <!-- 3. Right: Order book -->
+            <div class="orderbook">
+                <h2>Order Book</h2>
+                <div class="orders">
+                    <div class="buy-orders">
+                        <h3>Buy</h3>
+                        <ul>
+                            <li>0.9674 | 100</li>
+                            <li>0.9672 | 200</li>
+                            <li>0.9670 | 150</li>
+                        </ul>
+                    </div>
+                    <div class="sell-orders">
+                        <h3>Sell</h3>
+                        <ul>
+                            <li>0.9680 | 120</li>
+                            <li>0.9682 | 180</li>
+                            <li>0.9685 | 90</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

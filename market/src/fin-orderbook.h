@@ -1,0 +1,59 @@
+#pragma once
+
+#include "fin-platform.h"
+#include "fin-priority-queue.h"
+
+namespace fin {
+
+    struct L2MarketData {
+        i64 price;
+        i64 quantity;
+    };
+
+    inline static const OrderEntry * CompareEntries_Bids( const OrderEntry * a, const OrderEntry * b ) {
+        if (a->price > b->price) return a; // Higher price wins
+        if (a->price < b->price) return b;
+        return (a->time < b->time) ? a : b; // Earlier timestamp wins
+    }
+
+    inline static const OrderEntry * CompareEntries_Asks( const OrderEntry * a, const OrderEntry * b ) {
+        if (a->price < b->price) return a; // Lower price wins
+        if (a->price > b->price) return b;
+        return (a->time < b->time) ? a : b; // Earlier timestamp wins
+    }
+
+    class OrderBook {
+    public:
+        OrderBook() {};
+        OrderBook( const Symbol & symbol ) : symbol( symbol ) {}
+
+        i64 AddBid( OrderEntry entry );
+        i64 AddAsk( OrderEntry entry );
+
+        bool RemoveBid( i64 id );
+        bool RemoveAsk( i64 id );
+
+        // L1 market data. Just the top of the book
+        std::pair<bool, bool> GetL1MarketData( OrderEntry & bid, OrderEntry & ask ) const;
+
+        // L2 market data. An aggregated view, just prices and quantities
+        void GetL2MarketData( std::vector<L2MarketData> & l2bids, std::vector<L2MarketData> & l2asks, int depth );
+
+        // L3 market data. A full view into the order book.
+        void GetL3MarketData( std::vector<OrderEntry> & l3bids, std::vector<OrderEntry> & l3asks, int depth );
+
+    private:
+        i64 ResolveBook();
+
+    private:
+        Symbol symbol = Symbol();
+        PriorityQueue<OrderEntry> bids = PriorityQueue<OrderEntry>( &CompareEntries_Bids );
+        PriorityQueue<OrderEntry> asks = PriorityQueue<OrderEntry>( &CompareEntries_Asks );
+    };
+
+    namespace tests {
+        void RunOrderBookTests();
+    }
+}
+
+
