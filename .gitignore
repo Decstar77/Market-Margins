@@ -22,7 +22,7 @@ res
 *.vcxproj.user
 *.csproj
 bin
-client/build
-client/managed_components
+esp32-client/build
+esp32-client/managed_components
 .vscode
 main.exe

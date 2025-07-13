@@ -1,0 +1,76 @@
+#include "fin-client.h" 
+
+#include "esp_log.h"
+
+namespace fin {
+    void MarketClient::PlaceOrder( RpcCall call, const OrderEntry & order ) {
+        RpcBuilder builder( call );
+        builder.WriteArg( order );
+        device->Send( builder.GetData(), builder.GetSize() );
+    }
+
+    void MarketClient::Think() {
+        PacketBuffer buffer = {};
+        device->Recv( buffer );
+
+        Symbol symbol = {};
+        buffer.Read( symbol );
+
+        if ( symbol != Symbol( "AAPL" ) ) {
+            return;
+        }
+
+        OrderEntry bestBid = {};
+        OrderEntry bestAsk = {};
+        buffer.Read( bestBid );
+        buffer.Read( bestAsk );
+
+        DoStrategy( bestBid, bestAsk );
+    }
+
+    void MarketMakerClient::DoStrategy( const OrderEntry & bestBid, const OrderEntry & bestAsk ) {
+        constexpr i32 bid_price = 50;
+        if ( bestBid.price < bid_price ) {
+            OrderEntry order = {};
+            order.symbol = Symbol( "AAPL" );
+            order.price = bid_price;
+            order.quantity = 1;
+            PlaceOrder( RpcCall::PlaceOrder_Bid, order );
+        }
+    }
+
+    void MarketTakerClient::DoStrategy( const OrderEntry & bestBid, const OrderEntry & bestAsk ) {
+        constexpr i32 ask_price = 100;
+        if ( bestAsk.price > ask_price ) {
+            OrderEntry order = {};
+            order.symbol = Symbol( "AAPL" );
+            order.price = ask_price;
+            order.quantity = 1;
+            PlaceOrder( RpcCall::PlaceOrder_Ask, order );
+        }
+    }
+
+    void RandomClient::DoStrategy( const OrderEntry & bestBid, const OrderEntry & bestAsk ) {
+        float decision = (float)dis( gen );
+        if ( decision < 0.5 ) {
+            float price = 50 + (float)dis( gen ) * 50;
+            OrderEntry order = {};
+            order.symbol = Symbol( "AAPL" );
+            order.price = price;
+            order.quantity = 1;
+            PlaceOrder( RpcCall::PlaceOrder_Bid, order );
+            ESP_LOGI( "Random", "Bid: %d %d", (int)order.price, (int)order.quantity );
+            device->DisplayTrade( "Bid", (int)order.price, (int)order.quantity );
+        }
+        else {
+            float price = 50 + (float)dis( gen ) * 50;
+            OrderEntry order = {};
+            order.symbol = Symbol( "AAPL" );
+            order.price = price;
+            order.quantity = 1;
+            PlaceOrder( RpcCall::PlaceOrder_Ask, order );
+            ESP_LOGI( "Random", "Ask: %d %d", (int)order.price, (int)order.quantity );
+            device->DisplayTrade( "Ask", (int)order.price, (int)order.quantity );
+        }
+    }
+}

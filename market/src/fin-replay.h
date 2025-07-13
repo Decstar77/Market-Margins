@@ -1,3 +1,5 @@
+#pragma once
+
 #include "fin-pch.h"
 
 namespace fin {
