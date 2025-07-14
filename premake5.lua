@@ -114,7 +114,8 @@ project "desk-client"
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.c",
         "%{prj.name}/src/**.cpp",
-        "%{prj.name}/src/**.hpp"
+        "%{prj.name}/src/**.hpp",
+        path.join(SHARED_DIR, "**.cpp"),
     }
 
     filter "system:windows"

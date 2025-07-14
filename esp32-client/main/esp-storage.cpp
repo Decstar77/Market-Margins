@@ -3,7 +3,7 @@
 #include "esp_log.h"
 #include "esp_partition.h"
 
-#include "fin-lib.h"
+#include "esp-lib.h"
 
 namespace fin {
     static const char * TAG = "STORAGE";

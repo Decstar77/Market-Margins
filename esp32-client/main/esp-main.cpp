@@ -9,14 +9,15 @@
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_mac.h"
-#include "fin-lib.h"
+#include "esp-lib.h"
 
 using namespace fin;
 
 extern "C" void app_main() {
     storage_init();
     button_init();
-    wifi_init();
+    //wifi_init();
+    ethernet_init();
     client_init();
     display_init();
     logic_init();

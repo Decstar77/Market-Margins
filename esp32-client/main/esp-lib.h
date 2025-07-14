@@ -1,7 +1,7 @@
 #ifndef FIN_LIB_H
 #define FIN_LIB_H
 
-#define SERVER_IP   "192.168.125.78"
+#define SERVER_IP   "192.168.2.31"
 #define SERVER_TCP_PORT 54000
 #define SERVER_UDP_PORT 54001
 #define CAT_STRING(x, y, z) x y z

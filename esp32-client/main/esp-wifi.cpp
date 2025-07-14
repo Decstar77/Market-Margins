@@ -4,7 +4,7 @@
 #include "esp_mac.h"
 #include "nvs_flash.h"
 #include <string.h>
-#include "fin-lib.h"
+#include "esp-lib.h"
 
 namespace fin {
     static const char * WIFI_TAG = "WIFI";

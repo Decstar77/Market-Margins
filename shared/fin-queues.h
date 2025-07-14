@@ -2,6 +2,9 @@
 
 #include <atomic>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 
 namespace fin {
     constexpr std::size_t cacheline = std::hardware_destructive_interference_size;
@@ -45,4 +48,25 @@ namespace fin {
         alignas(cacheline) std::vector<_type_> data;
     };
 
+    template<typename _type_>
+    class WaitQueue {
+    public:
+        void Push( const _type_ & t ) {
+            std::lock_guard<std::mutex> lock( mutex );
+            q.push( t );
+            cv.notify_one();
+        }
+
+        void Pop( _type_ & t ) {
+            std::unique_lock<std::mutex> lock( mutex );
+            cv.wait( lock, [this]() { return q.empty() == false; } );
+            t = q.front();
+            q.pop();
+        }
+
+    private:
+        std::queue<_type_> q;
+        std::mutex mutex;
+        std::condition_variable cv;
+    };
 }

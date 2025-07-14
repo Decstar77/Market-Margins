@@ -17,6 +17,7 @@ namespace fin {
         virtual void        Recv( PacketBuffer & buffer ) = 0;
         virtual void        DisplayHeaderText( const char * text ) = 0;
         virtual void        DisplayTrade( const char * text, int price, int quantity ) = 0;
+        virtual void        Log( const char * text ) = 0;
     };
 
     class MarketClient {

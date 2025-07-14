@@ -5,7 +5,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include "esp_log.h"
-#include "fin-lib.h"
+#include "esp-lib.h"
 
 #include "../../shared/fin-client.h"
 

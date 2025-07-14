@@ -1,7 +1,5 @@
 #include "fin-client.h" 
 
-#include "esp_log.h"
-
 namespace fin {
     void MarketClient::PlaceOrder( RpcCall call, const OrderEntry & order ) {
         RpcBuilder builder( call );
@@ -12,13 +10,6 @@ namespace fin {
     void MarketClient::Think() {
         PacketBuffer buffer = {};
         device->Recv( buffer );
-
-        Symbol symbol = {};
-        buffer.Read( symbol );
-
-        if ( symbol != Symbol( "AAPL" ) ) {
-            return;
-        }
 
         OrderEntry bestBid = {};
         OrderEntry bestAsk = {};
@@ -56,20 +47,18 @@ namespace fin {
             float price = 50 + (float)dis( gen ) * 50;
             OrderEntry order = {};
             order.symbol = Symbol( "AAPL" );
-            order.price = price;
+            order.price = static_cast<i32>(price);
             order.quantity = 1;
             PlaceOrder( RpcCall::PlaceOrder_Bid, order );
-            ESP_LOGI( "Random", "Bid: %d %d", (int)order.price, (int)order.quantity );
             device->DisplayTrade( "Bid", (int)order.price, (int)order.quantity );
         }
         else {
             float price = 50 + (float)dis( gen ) * 50;
             OrderEntry order = {};
             order.symbol = Symbol( "AAPL" );
-            order.price = price;
+            order.price = static_cast<i32>(price);
             order.quantity = 1;
             PlaceOrder( RpcCall::PlaceOrder_Ask, order );
-            ESP_LOGI( "Random", "Ask: %d %d", (int)order.price, (int)order.quantity );
             device->DisplayTrade( "Ask", (int)order.price, (int)order.quantity );
         }
     }

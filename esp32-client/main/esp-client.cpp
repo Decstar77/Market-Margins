@@ -5,38 +5,11 @@
 #include <inttypes.h>
 #include <string.h>
 #include "esp_log.h"
-#include "fin-lib.h"
+#include "esp-lib.h"
 
 #include "../../shared/fin-api.h"
 
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-
 namespace fin {
-
-    template<typename _type_>
-    class WaitQueue {
-    public:
-        void Push( const _type_ & t ) {
-            std::lock_guard<std::mutex> lock( mutex );
-            q.push( t );
-            cv.notify_one();
-        }
-
-        void Pop( _type_ & t ) {
-            std::unique_lock<std::mutex> lock( mutex );
-            cv.wait( lock, [this]() { return q.empty() == false; } );
-            t = q.front();
-            q.pop();
-        }
-
-    private:
-        std::queue<_type_> q;
-        std::mutex mutex;
-        std::condition_variable cv;
-    };
-
     static const char * TAG = "CLIENT";
     static int tcp_socket = -1;
     static WaitQueue<PacketBuffer> tcpIncoming;

@@ -3,7 +3,7 @@
 #include "fin-rpc.h"
 #include "fin-orderbook.h"
 #include "fin-replay.h"
-#include "fin-spsc-queue.h"
+#include "fin-queues.h"
 
 #include <random>
 std::random_device rd;
@@ -53,27 +53,16 @@ using namespace fin;
 int main() {
 
     RpcTable table;
-    std::unordered_map<int, OrderBook> books;
-
-    Symbol aapl( "AAPL" );
-    Symbol msft( "MSFT" );
-
-    books[aapl.AsInt()] = OrderBook( aapl );
-    books[msft.AsInt()] = OrderBook( msft );
+    OrderBook book( Symbol( "AAPL" ) );
 
     std::string replayFilename = std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() );
     ReplayEngine replay( replayFilename );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&books, &replay]( OrderEntry entry )
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&book, &replay]( OrderEntry entry )
         {
-            int symbol = entry.symbol.AsInt();
-            if ( books.contains( symbol ) == false ) {
-                return;
-            }
-
             entry.id = dis( gen );
             entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            books[symbol].AddBid( entry );
+            book.AddBid( entry );
 
             replay.Append( RpcCall::PlaceOrder_Bid );
             replay.Append( entry );
@@ -83,16 +72,11 @@ int main() {
             TCPServerSendPacket( buffer );
         } ) );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&books, &replay]( OrderEntry entry )
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&book, &replay]( OrderEntry entry )
         {
-            int symbol = entry.symbol.AsInt();
-            if ( books.contains( symbol ) == false ) {
-                return;
-            }
-
             entry.id = dis( gen );
             entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            books[symbol].AddAsk( entry );
+            book.AddAsk( entry );
 
             replay.Append( RpcCall::PlaceOrder_Ask );
             replay.Append( entry );
@@ -104,13 +88,9 @@ int main() {
         } ) );
 
 
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64, Symbol>( [&books, &replay]( i64 id, Symbol symbol )
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64, Symbol>( [&book, &replay]( i64 id, Symbol symbol )
         {
-            if ( books.contains( symbol.AsInt() ) == false ) {
-                return;
-            }
-
-            bool result = books[symbol.AsInt()].RemoveBid( id );
+            bool result = book.RemoveBid( id );
 
             replay.Append( RpcCall::CancelOrder_Bid );
             replay.Append( id );
@@ -120,13 +100,9 @@ int main() {
             TCPServerSendPacket( buffer );
         } ) );
 
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64, Symbol>( [&books, &replay]( i64 id, Symbol symbol )
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64, Symbol>( [&book, &replay]( i64 id, Symbol symbol )
         {
-            if ( books.contains( symbol.AsInt() ) == false ) {
-                return;
-            }
-
-            bool result = books[symbol.AsInt()].RemoveAsk( id );
+            bool result = book.RemoveAsk( id );
 
             replay.Append( RpcCall::CancelOrder_Ask );
             replay.Append( id );
@@ -140,24 +116,21 @@ int main() {
     UDPServerSocket( "54001", "239.255.0.1" );
 
     while ( true ) {
-        std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
         PacketBuffer recBuffer = {};
         if ( TCPServerReceivePacket( recBuffer ) ) {
             fin::RpcCallData rpcCall( recBuffer.data, recBuffer.length );
             table.Call( rpcCall );
         }
 
-        for ( auto & [symbol, book] : books ) {
-            OrderEntry bestBid = {};
-            OrderEntry bestAsk = {};
-            book.GetL1MarketData( bestBid, bestAsk );
+        OrderEntry bestBid = {};
+        OrderEntry bestAsk = {};
+        book.GetL1MarketData( bestBid, bestAsk );
 
-            PacketBuffer sendBuffer = {};
-            sendBuffer.Write( symbol );
-            sendBuffer.Write( bestBid );
-            sendBuffer.Write( bestAsk );
-            UDPServerMulticastPacket( sendBuffer );
-        }
+        PacketBuffer sendBuffer = {};
+        sendBuffer.Write( bestBid );
+        sendBuffer.Write( bestAsk );
+        UDPServerMulticastPacket( sendBuffer );
     }
 
     return 0;

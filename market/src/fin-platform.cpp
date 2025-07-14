@@ -1,6 +1,6 @@
 #include "fin-pch.h"
 #include "fin-platform.h"
-#include "fin-spsc-queue.h"
+#include "fin-queues.h"
 
 #if _WIN32
 
@@ -9,7 +9,6 @@
 
 namespace fin {
     static SOCKET tcpServerSocket = INVALID_SOCKET;
-    static SOCKET tcpClientSocket = INVALID_SOCKET;
     static std::thread tcpConnectionThread;
     static std::thread tcpReadThread;
     static std::vector<NetId> tcpClients;
