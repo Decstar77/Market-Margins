@@ -1,0 +1,67 @@
+﻿@page "/"
+
+@attribute [StreamRendering]
+@rendermode @(new InteractiveServerRenderMode(false))
+
+@using Microsoft.AspNetCore.SignalR.Client
+@using ApexCharts
+
+@inject NavigationManager navMan
+
+<PageTitle>Terminal</PageTitle>
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="card shadow-lg rounded-4 p-4" style="width: 70vw; max-width: 1200px;">
+        <ApexChart @ref=chart
+                   Options="options"
+                   TItem="MarketData"
+                   Height="400">
+
+            <ApexPointSeries TItem="MarketData"
+                             Items="Data"
+                             SeriesType="SeriesType.Line"
+                             XValue="e => e.Time"
+                             YValue="e => e.Price" />
+
+        </ApexChart>
+    </div>
+</div>
+
+@code {
+    private ApexChart<MarketData> chart;
+    private ApexChartOptions<MarketData> options;
+    private List<MarketData> Data { get; set; } = new();
+    private HubConnection? hubConnection;
+    private long lastTime = 0;
+
+    protected override async Task OnInitializedAsync() {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl( navMan.ToAbsoluteUri( "/charthub" ) )
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<MarketData>( "ReceiveNewData", async ( newData ) => {
+            newData.Time = lastTime++;
+            Data.Add( newData );
+            await chart!.AppendDataAsync( new List<MarketData> { newData } );
+        } );
+
+        await hubConnection.StartAsync();
+    }
+
+    protected override void OnInitialized() {
+        base.OnInitialized();
+        options = new ApexChartOptions<MarketData>();
+        options.Chart = new Chart {
+                Animations = new Animations {
+                    Enabled = false
+                },
+                Toolbar = new Toolbar {
+                    Show = false
+                },
+                Zoom = new Zoom {
+                    Enabled = false
+                }
+            };
+    }
+}

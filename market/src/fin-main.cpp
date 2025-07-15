@@ -54,9 +54,23 @@ int main() {
 
     RpcTable table;
     OrderBook book( Symbol( "AAPL" ) );
+    ReplayEngine replay( std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() ) );
 
-    std::string replayFilename = std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() );
-    ReplayEngine replay( replayFilename );
+    OrderEntry startingBid = {};
+    startingBid.id = dis( gen );
+    startingBid.time = std::chrono::system_clock::now().time_since_epoch().count();
+    startingBid.price = 40;
+    startingBid.quantity = 100;
+    startingBid.symbol = Symbol( "AAPL" );
+    book.AddBid( startingBid );
+
+    OrderEntry startingAsk = {};
+    startingAsk.id = dis( gen );
+    startingAsk.time = std::chrono::system_clock::now().time_since_epoch().count();
+    startingAsk.price = 110;
+    startingAsk.quantity = 100;
+    startingAsk.symbol = Symbol( "AAPL" );
+    book.AddAsk( startingAsk );
 
     table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&book, &replay]( OrderEntry entry )
         {

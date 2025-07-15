@@ -26,3 +26,4 @@ esp32-client/build
 esp32-client/managed_components
 .vscode
 main.exe
+terminal/obj

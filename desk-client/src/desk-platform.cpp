@@ -1,6 +1,12 @@
 #include "desk-platform.h"
 #include "fin-queues.h"
 
+#define FMT_UNICODE 0
+#include "spdlog/spdlog.h"
+
+#define LOG_INFO(x, ...) spdlog::info(x, ##__VA_ARGS__)
+#define LOG_WARN(x, ...) spdlog::warn(x, ##__VA_ARGS__)
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -148,11 +154,11 @@ namespace fin {
         }
 
         void DisplayTrade( const char * text, int price, int quantity ) override {
-            std::cout << text << ": " << price << " | " << quantity << std::endl;
+            LOG_INFO("{}: {} | {}", text, price, quantity);
         }
 
         void Log(const char* text) override {
-            std::cout << text << std::endl;
+            LOG_INFO("{}");
         }
     };
 
