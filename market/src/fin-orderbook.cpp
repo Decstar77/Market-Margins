@@ -5,13 +5,13 @@
 
 namespace fin {
     i64 OrderBook::AddBid( OrderEntry entry ) {
-        LOG_INFO( "AddBid: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
+        // LOG_INFO( "AddBid: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
         bids.Push( entry );
         return ResolveBook();
     }
 
     i64 OrderBook::AddAsk( OrderEntry entry ) {
-        LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
+        //  LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
         asks.Push( entry );
         return ResolveBook();
     }

@@ -16,7 +16,6 @@
 static char ip_address[32] = {};
 
 #define RESET_COUNT_THRESHOLD 10
-static int eth_down_count = 0;
 
 namespace fin {
 
@@ -42,12 +41,6 @@ namespace fin {
         }
         case ETHERNET_EVENT_DISCONNECTED: {
             ESP_LOGI( TAG, "Ethernet Link Down" );
-            memset( ip_address, 0, sizeof( ip_address ) );
-            eth_down_count++;
-            if ( eth_down_count >= RESET_COUNT_THRESHOLD ) {
-                ESP_LOGE( TAG, "Ethernet Link Down count threshold reached, resetting" );
-                esp_restart();
-            }
             break;
         }
         case ETHERNET_EVENT_START: {

@@ -16,7 +16,7 @@ using namespace fin;
 extern "C" void app_main() {
     storage_init();
     button_init();
-    //wifi_init();
+    // wifi_init();
     ethernet_init();
     client_init();
     display_init();

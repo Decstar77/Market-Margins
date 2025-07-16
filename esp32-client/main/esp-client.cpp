@@ -8,6 +8,7 @@
 #include "esp-lib.h"
 
 #include "../../shared/fin-api.h"
+#include "../../shared/fin-queues.h"
 
 namespace fin {
     static const char * TAG = "CLIENT";
@@ -115,8 +116,7 @@ namespace fin {
                 socklen_t socklen = sizeof( source_addr );
 
                 PacketBuffer buffer = {};
-                int len = recvfrom( sock, buffer.data, sizeof( buffer.data ), 0,
-                    (struct sockaddr *)&source_addr, &socklen );
+                int len = recvfrom( sock, buffer.data, sizeof( buffer.data ), 0, (struct sockaddr *)&source_addr, &socklen );
 
                 if ( len < 0 ) {
                     ESP_LOGE( TAG, "recvfrom failed: errno %d", errno );

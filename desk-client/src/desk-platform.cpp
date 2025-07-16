@@ -154,7 +154,7 @@ namespace fin {
         }
 
         void DisplayTrade( const char * text, int price, int quantity ) override {
-            LOG_INFO("{}: {} | {}", text, price, quantity);
+            LOG_INFO("Making Trade: {}: {} | {}", text, price, quantity);
         }
 
         void Log(const char* text) override {

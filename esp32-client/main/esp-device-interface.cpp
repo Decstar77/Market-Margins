@@ -10,6 +10,8 @@
 #include "../../shared/fin-client.h"
 
 namespace fin {
+    static const char * TAG = "DEVICE";
+
     class Esp32DeviceInterface : public DeviceInterface {
     public:
         virtual void Send( const void * data, int size ) override {
@@ -23,6 +25,9 @@ namespace fin {
         }
         virtual void DisplayTrade( const char * text, int price, int quantity ) override {
             display_append_trade( text, price, quantity );
+        }
+        virtual void Log( const char * text ) override {
+            ESP_LOGI( TAG, "%s", text );
         }
     };
 

@@ -1,5 +1,7 @@
 #include "fin-client.h" 
 
+#include <thread>
+
 namespace fin {
     void MarketClient::PlaceOrder( RpcCall call, const OrderEntry & order ) {
         RpcBuilder builder( call );
@@ -47,7 +49,7 @@ namespace fin {
             float price = 50 + (float)dis( gen ) * 50;
             OrderEntry order = {};
             order.symbol = Symbol( "AAPL" );
-            order.price = static_cast<i32>(price);
+            order.price = static_cast<i32>( price );
             order.quantity = 1;
             PlaceOrder( RpcCall::PlaceOrder_Bid, order );
             device->DisplayTrade( "Bid", (int)order.price, (int)order.quantity );
@@ -61,5 +63,8 @@ namespace fin {
             PlaceOrder( RpcCall::PlaceOrder_Ask, order );
             device->DisplayTrade( "Ask", (int)order.price, (int)order.quantity );
         }
+
+        float sleepTime = 5 + (float)dis( gen ) * 30;
+        std::this_thread::sleep_for( std::chrono::milliseconds( static_cast<i32>(sleepTime) ) );
     }
 }
