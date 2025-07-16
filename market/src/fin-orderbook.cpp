@@ -7,22 +7,28 @@ namespace fin {
     i64 OrderBook::AddBid( OrderEntry entry ) {
         // LOG_INFO( "AddBid: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
         bids.Push( entry );
+        orderCount++;
+        volume += entry.quantity;
         return ResolveBook();
     }
 
     i64 OrderBook::AddAsk( OrderEntry entry ) {
         //  LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
         asks.Push( entry );
+        orderCount++;
+        volume += entry.quantity;
         return ResolveBook();
     }
 
     bool OrderBook::RemoveBid( i64 id ) {
-        LOG_INFO( "RemoveBid: {}", id );
+        // LOG_INFO( "RemoveBid: {}", id );
+        cancelCount++;
         return bids.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } );
     }
 
     bool OrderBook::RemoveAsk( i64 id ) {
-        LOG_INFO( "RemoveAsk: {}", id );
+        // LOG_INFO( "RemoveAsk: {}", id );
+        cancelCount++;
         return asks.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } );
     }
 
@@ -54,6 +60,8 @@ namespace fin {
 
             if ( ask->quantity == 0 ) { asks.Pop(); }
             if ( bid->quantity == 0 ) { bids.Pop(); }
+
+            tradeCount++;
 
             bid = nullptr;
             ask = nullptr;

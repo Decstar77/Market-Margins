@@ -20,11 +20,11 @@ std::uniform_int_distribution<u64> dis( 1, std::numeric_limits<u64>::max() );
 
     2. Analytics & Quant Research
     * (DONE) Replay Engine: Record all order flow and allow replaying for backtesting strategies.
-    * Microstructure Metrics: Order-to-trade ratio, bid-ask spread, volume, Price impact per order size, etc.
+    * (DONE) Microstructure Metrics: Order-to-trade ratio, bid-ask spread, volume, Price impact per order size, etc.
     * Order Flow Analysis: Visualize the impact of spoofing, front-running, etc.
 
     3. Architecture & Distributed Systems
-    * Clustered Matching Engine: Use message queues or gRPC to shard matching engines per symbol.
+    * (DONE) Clustered Matching Engine: Use message queues or gRPC to shard matching engines per symbol.
     * Exchange Gateway: Separate matching from networking, simulate FIX or ITCH protocol compatibility.
     * (DONE) Horizontal Scaling: Add more ESP32 “trader” nodes (or even Raspberry Pi clusters), simulate co-location vs. edge trading.
 
@@ -76,7 +76,7 @@ int main() {
         {
             entry.id = dis( gen );
             entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            book.AddBid( entry );
+            i64 res = book.AddBid( entry );
 
             replay.Append( RpcCall::PlaceOrder_Bid );
             replay.Append( entry );
@@ -90,14 +90,13 @@ int main() {
         {
             entry.id = dis( gen );
             entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            book.AddAsk( entry );
+            i64 res = book.AddAsk( entry );
 
             replay.Append( RpcCall::PlaceOrder_Ask );
             replay.Append( entry );
 
             PacketBuffer buffer;
             buffer.Write( entry.id );
-
             TCPServerSendPacket( buffer );
         } ) );
 
@@ -156,10 +155,13 @@ int main() {
             sendBuffer.Write( bestAsk );
             UDPServerMulticastPacket( sendBuffer );
 
-            const i64 midPrice = (bestAsk.price - bestBid.price) / 2;
-            const i64 spread = bestAsk.price - bestBid.price;
-            LOG_INFO( " {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3}",
-                "Best Bid", bestBid.price, "Best Ask", bestAsk.price, "Mid Price", midPrice, "Spread", spread );
+            // const i64 midPrice = (bestAsk.price - bestBid.price) / 2;
+            // const i64 spread = bestAsk.price - bestBid.price;
+            // LOG_INFO( " {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3}",
+            //     "Best Bid", bestBid.price, "Best Ask", bestAsk.price, "Mid Price", midPrice, "Spread", spread );
+
+            LOG_INFO( "Order Count: {:>3} | Trade Count: {:>3} | Volume: {:>3} | Order/Trade: {:>3.2f} | Volume/Trade: {:>3.2f}",
+                book.GetOrderCount(), book.GetTradeCount(), book.GetVolume(), book.GetOrderToTradeRatio(), book.GetVolumePerTrade() );
         }
     }
 
