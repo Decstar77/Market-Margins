@@ -5,6 +5,12 @@
 
 namespace fin {
 
+    struct OrderResult {
+        OrderEntry bestBid;
+        OrderEntry bestAsk;
+        i64 amount;
+    };
+
     struct L2MarketData {
         i64 price;
         i64 quantity;
@@ -27,11 +33,11 @@ namespace fin {
         OrderBook() {};
         OrderBook( const Symbol & symbol ) : symbol( symbol ) {}
 
-        i64 AddBid( OrderEntry entry );
-        i64 AddAsk( OrderEntry entry );
+        OrderResult AddBid( OrderEntry & entry );
+        OrderResult AddAsk( OrderEntry & entry );
 
-        bool RemoveBid( i64 id );
-        bool RemoveAsk( i64 id );
+        OrderResult RemoveBid( i64 id );
+        OrderResult RemoveAsk( i64 id );
 
         // L1 market data. Just the top of the book
         std::pair<bool, bool> GetL1MarketData( OrderEntry & bid, OrderEntry & ask ) const;
@@ -51,6 +57,7 @@ namespace fin {
         inline double GetVolumePerTrade() const { return static_cast<double>(volume) / static_cast<double>(tradeCount); }
 
     private:
+        void CompleteOrder( OrderEntry & entry );
         i64 ResolveBook();
 
     private:

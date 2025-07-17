@@ -7,9 +7,8 @@
 #include "fin-log.h"
 
 #include <random>
-std::random_device rd;
-std::mt19937 gen( rd() );
-std::uniform_int_distribution<u64> dis( 1, std::numeric_limits<u64>::max() );
+
+using namespace fin;
 
 /*
     ======= Some AI ideas that I think will be interesting to implement/explore =======
@@ -49,86 +48,113 @@ std::uniform_int_distribution<u64> dis( 1, std::numeric_limits<u64>::max() );
     * Reinforcement learning: Agent that learns to trade profitably in your market
 */
 
-using namespace fin;
+namespace fin {
+    struct CompletedOrder {
+        RpcCall         call;
+        OrderEntry      entry;
+        OrderResult     result;
+    };
+
+    inline static void AddToCompletedQueue( SPSCQueue<CompletedOrder> & queue, const RpcCall & call, const OrderEntry & entry, const OrderResult & result ) {
+        CompletedOrder order;
+        order.entry = entry;
+        order.call = call;
+        order.result = result;
+        queue.Push( order );
+    }
+}
 
 int main() {
-    RpcTable table;
-    OrderBook book( Symbol( "AAPL" ) );
-    ReplayEngine replay( std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() ) );
+    RpcTable        table;
+    OrderBook       book( Symbol( "AAPL" ) );
+    ReplayEngine    replay( std::format( "replay_{}.bin", std::chrono::system_clock::now().time_since_epoch().count() ) );
 
     OrderEntry startingBid = {};
-    startingBid.id = dis( gen );
-    startingBid.time = std::chrono::system_clock::now().time_since_epoch().count();
     startingBid.price = 40;
     startingBid.quantity = 100;
     startingBid.symbol = Symbol( "AAPL" );
     book.AddBid( startingBid );
 
     OrderEntry startingAsk = {};
-    startingAsk.id = dis( gen );
-    startingAsk.time = std::chrono::system_clock::now().time_since_epoch().count();
     startingAsk.price = 110;
     startingAsk.quantity = 100;
     startingAsk.symbol = Symbol( "AAPL" );
     book.AddAsk( startingAsk );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&book, &replay]( OrderEntry entry )
+    SPSCQueue<CompletedOrder>   orderCompleteQueue( 10000 );
+
+    std::thread replayAndReplyThread( [&orderCompleteQueue, &replay]()
         {
-            entry.id = dis( gen );
-            entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            i64 res = book.AddBid( entry );
+            auto lastUpdate = std::chrono::steady_clock::now();
+            while ( true ) {
+                OrderEntry bestBid = {};
+                OrderEntry bestAsk = {};
+                CompletedOrder entry = {};
+                bool rec = false;
+                while ( orderCompleteQueue.Pop( entry ) ) {
+                    rec = true;
 
-            replay.Append( RpcCall::PlaceOrder_Bid );
-            replay.Append( entry );
+                    replay.Append( RpcCall::PlaceOrder_Bid );
+                    replay.Append( entry );
 
-            PacketBuffer buffer;
-            buffer.Write( entry.id );
-            TCPServerSendPacket( buffer );
+                    bestBid = entry.result.bestBid;
+                    bestAsk = entry.result.bestAsk;
+
+                    PacketBuffer buffer;
+                    buffer.Write( entry.entry.id );
+                    TCPServerSendPacket( buffer );
+                }
+
+                auto now = std::chrono::steady_clock::now();
+                bool shouldUpdate = std::chrono::duration_cast<std::chrono::seconds>(now - lastUpdate).count() >= 10;
+
+                if ( rec || shouldUpdate ) {
+                    lastUpdate = now;
+
+                    PacketBuffer sendBuffer = {};
+                    sendBuffer.Write( bestBid );
+                    sendBuffer.Write( bestAsk );
+                    UDPServerMulticastPacket( sendBuffer );
+
+                    const i64 midPrice = (bestAsk.price - bestBid.price) / 2;
+                    const i64 spread = bestAsk.price - bestBid.price;
+                    LOG_INFO( " {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3}",
+                        "Best Bid", bestBid.price, "Best Ask", bestAsk.price, "Mid Price", midPrice, "Spread", spread );
+
+                    // LOG_INFO( "Order Count: {:>3} | Trade Count: {:>3} | Volume: {:>3} | Order/Trade: {:>3.2f} | Volume/Trade: {:>3.2f}",
+                        // book.GetOrderCount(), book.GetTradeCount(), book.GetVolume(), book.GetOrderToTradeRatio(), book.GetVolumePerTrade() );
+                }
+            }
+        } );
+
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&book, &orderCompleteQueue]( OrderEntry entry )
+        {
+            const OrderResult result = book.AddBid( entry );
+            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Bid, entry, result );
         } ) );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&book, &replay]( OrderEntry entry )
+    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&book, &orderCompleteQueue]( OrderEntry entry )
         {
-            entry.id = dis( gen );
-            entry.time = std::chrono::system_clock::now().time_since_epoch().count();
-            i64 res = book.AddAsk( entry );
-
-            replay.Append( RpcCall::PlaceOrder_Ask );
-            replay.Append( entry );
-
-            PacketBuffer buffer;
-            buffer.Write( entry.id );
-            TCPServerSendPacket( buffer );
+            const OrderResult result = book.AddAsk( entry );
+            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Ask, entry, result );
         } ) );
 
-
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64, Symbol>( [&book, &replay]( i64 id, Symbol symbol )
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64, Symbol>( [&book, &orderCompleteQueue]( i64 id )
         {
-            bool result = book.RemoveBid( id );
-
-            replay.Append( RpcCall::CancelOrder_Bid );
-            replay.Append( id );
-
-            PacketBuffer buffer;
-            buffer.Write( result );
-            TCPServerSendPacket( buffer );
+            const OrderResult result = book.RemoveBid( id );
+            OrderEntry entry = {}; entry.id = id;
+            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Bid, entry, result );
         } ) );
 
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64, Symbol>( [&book, &replay]( i64 id, Symbol symbol )
+    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64, Symbol>( [&book, &orderCompleteQueue]( i64 id )
         {
-            bool result = book.RemoveAsk( id );
-
-            replay.Append( RpcCall::CancelOrder_Ask );
-            replay.Append( id );
-
-            PacketBuffer buffer;
-            buffer.Write( result );
-            TCPServerSendPacket( buffer );
+            const OrderResult result = book.RemoveAsk( id );
+            OrderEntry entry = {}; entry.id = id;
+            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Ask, entry, result );
         } ) );
 
     TCPServerSocket( "54000" );
     UDPServerSocket( "54001", "239.255.0.1" );
-
-    auto lastUpdate = std::chrono::steady_clock::now();
 
     while ( true ) {
         // std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
@@ -138,30 +164,6 @@ int main() {
             recOrder = true;
             fin::RpcCallData rpcCall( recBuffer.data, recBuffer.length );
             table.Call( rpcCall );
-        }
-
-        auto now = std::chrono::steady_clock::now();
-        bool shouldUpdate = std::chrono::duration_cast<std::chrono::seconds>(now - lastUpdate).count() >= 10;
-
-        if ( recOrder || shouldUpdate ) {
-            lastUpdate = now;
-
-            OrderEntry bestBid = {};
-            OrderEntry bestAsk = {};
-            book.GetL1MarketData( bestBid, bestAsk );
-
-            PacketBuffer sendBuffer = {};
-            sendBuffer.Write( bestBid );
-            sendBuffer.Write( bestAsk );
-            UDPServerMulticastPacket( sendBuffer );
-
-            // const i64 midPrice = (bestAsk.price - bestBid.price) / 2;
-            // const i64 spread = bestAsk.price - bestBid.price;
-            // LOG_INFO( " {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3} | {:>3}",
-            //     "Best Bid", bestBid.price, "Best Ask", bestAsk.price, "Mid Price", midPrice, "Spread", spread );
-
-            LOG_INFO( "Order Count: {:>3} | Trade Count: {:>3} | Volume: {:>3} | Order/Trade: {:>3.2f} | Volume/Trade: {:>3.2f}",
-                book.GetOrderCount(), book.GetTradeCount(), book.GetVolume(), book.GetOrderToTradeRatio(), book.GetVolumePerTrade() );
         }
     }
 

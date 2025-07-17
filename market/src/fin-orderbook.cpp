@@ -4,32 +4,52 @@
 #include "fin-log.h"
 
 namespace fin {
-    i64 OrderBook::AddBid( OrderEntry entry ) {
+    OrderResult OrderBook::AddBid( OrderEntry & entry ) {
         // LOG_INFO( "AddBid: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
+        CompleteOrder( entry );
         bids.Push( entry );
+        const i64 amount = ResolveBook();
+
         orderCount++;
         volume += entry.quantity;
-        return ResolveBook();
+
+        OrderResult result = {};
+        result.amount = amount;
+        GetL1MarketData( result.bestBid, result.bestAsk );
+        return result;
     }
 
-    i64 OrderBook::AddAsk( OrderEntry entry ) {
+    OrderResult OrderBook::AddAsk( OrderEntry & entry ) {
         //  LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
+        CompleteOrder( entry );
         asks.Push( entry );
+        const i64 amount = ResolveBook();
+
         orderCount++;
         volume += entry.quantity;
-        return ResolveBook();
+
+        OrderResult result = {};
+        result.amount = amount;
+        GetL1MarketData( result.bestBid, result.bestAsk );
+        return result;
     }
 
-    bool OrderBook::RemoveBid( i64 id ) {
+    OrderResult OrderBook::RemoveBid( i64 id ) {
         // LOG_INFO( "RemoveBid: {}", id );
         cancelCount++;
-        return bids.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } );
+        OrderResult result = {};
+        result.amount = static_cast<i64>(bids.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } ));
+        GetL1MarketData( result.bestBid, result.bestAsk );
+        return result;
     }
 
-    bool OrderBook::RemoveAsk( i64 id ) {
+    OrderResult OrderBook::RemoveAsk( i64 id ) {
         // LOG_INFO( "RemoveAsk: {}", id );
         cancelCount++;
-        return asks.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } );
+        OrderResult result = {};
+        result.amount = asks.RemoveOnce( [id]( const OrderEntry * entry ) { return entry->id == id; } );
+        GetL1MarketData( result.bestBid, result.bestAsk );
+        return result;
     }
 
     std::pair<bool, bool> OrderBook::GetL1MarketData( OrderEntry & bid, OrderEntry & ask ) const {
@@ -42,6 +62,11 @@ namespace fin {
 
     void OrderBook::GetL3MarketData( std::vector<OrderEntry> & l3bids, std::vector<OrderEntry> & l3asks, int depth ) {
 
+    }
+
+    void OrderBook::CompleteOrder( OrderEntry & entry ) {
+        entry.id = orderCount;
+        entry.time = std::chrono::system_clock::now().time_since_epoch().count();
     }
 
     i64 OrderBook::ResolveBook() {
