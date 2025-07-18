@@ -137,7 +137,8 @@ namespace fin {
             return;
         }
 
-        send( tcp_socket, data, size, 0 );
+        int v = send( tcp_socket, data, size, 0 );
+        // ESP_LOGI( TAG, "Send was %d", v );
     }
 
     bool client_udp_recv( PacketBuffer & buffer ) {

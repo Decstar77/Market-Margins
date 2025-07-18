@@ -1,6 +1,7 @@
 #include "fin-pch.h"
 #include "fin-platform.h"
 #include "fin-queues.h"
+#include "fin-log.h"
 
 #if _WIN32
 
@@ -14,7 +15,7 @@ namespace fin {
     static std::vector<NetId> tcpClients;
 
     // NOTE: Small amount for now.
-    static SPSCQueue<RpcCallData> packetQueue( 1024 );
+    SPSCQueue<RpcCallData> packetQueue( 1024 );
 
     void TCPServerSocket( const std::string_view & port ) {
         WSADATA wsaData = {};
@@ -66,6 +67,10 @@ namespace fin {
         tcpReadThread = std::thread( [&]()
             {
                 std::cout << "Read thread started" << std::endl;
+
+                // @SPEED: I'm not sure how bad this erase + std::vector + allocations will be. For now it's fine.
+                std::vector<char> recvBuffer;
+
                 while ( true ) {
                     std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
                     for ( auto & client : tcpClients ) {
@@ -77,15 +82,34 @@ namespace fin {
                                 continue;
                             }
                             else {
-                                std::cerr << "recv failed with error: " << err << "\n";
+                                LOG_ERROR( "recv failed with error {}", err );
+                                continue;
                             }
                         }
                         else if ( bytesReceived == 0 ) {
-                            std::cout << "Connection closed\n";
+                            LOG_ERROR( "Connection closed" );
+                            continue;
                         }
-                        else {
-                            RpcCallData call( buffer, bytesReceived );
-                            packetQueue.Push( call );
+
+                        //LOG_INFO( "Recv: {}", bytesReceived );
+
+                        recvBuffer.insert( recvBuffer.end(), buffer, buffer + bytesReceived );
+
+                        while ( recvBuffer.empty() == false ) {
+                            byte msgLen = static_cast<byte>(recvBuffer[0]);
+                            int totalSize = msgLen + 1;
+
+                            if ( recvBuffer.size() < totalSize ) {
+                                break;
+                            }
+
+                            RpcCallData call( &recvBuffer[0], totalSize );
+                            if ( packetQueue.Push( call ) == false ) {
+                                LOG_ERROR("Could not add call to queue!!");
+                            }
+
+                            // Eish!
+                            recvBuffer.erase( recvBuffer.begin(), recvBuffer.begin() + totalSize );
                         }
                     }
                 }

@@ -35,7 +35,7 @@ namespace fin {
         ssd1306_contrast( &dev, 0xff );
         ssd1306_display_text_x3( &dev, 0, "Hello", 5, false );
         vTaskDelay( 3000 / portTICK_PERIOD_MS );
-        xTaskCreate( display_trades_task, "Display Trades", 4096, NULL, configMAX_PRIORITIES - 1, NULL );
+        xTaskCreate( display_trades_task, "Display Trades", 4096, NULL, 5, NULL );
     }
 
     static void display_text( SSD1306_t * dev, int page, int seg, const char * text, int text_len, bool invert ) {

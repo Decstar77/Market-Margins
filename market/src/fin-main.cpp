@@ -195,11 +195,8 @@ int main() {
         std::this_thread::sleep_for( std::chrono::milliseconds( 30 ) );
 
         RpcCallData rpcCall = {};
-        if ( TCPServerReceiveRPC( rpcCall ) ) {
+        while ( TCPServerReceiveRPC( rpcCall ) ) {
             table.Call( rpcCall.GetCallBuffer() );
-        }
-        else {
-            spins++;
         }
 
         auto now = std::chrono::steady_clock::now();

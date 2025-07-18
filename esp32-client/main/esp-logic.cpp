@@ -33,7 +33,7 @@ namespace fin {
 
     void logic_init() {
         strategy = (Strategy)storage_load_int( "strategy", (int)Strategy::Random );
-        xTaskCreate( logic_think_task, "logic_think", 4096, NULL, 5, NULL );
+        xTaskCreate( logic_think_task, "logic_think", 4096, NULL, configMAX_PRIORITIES - 1, NULL );
     }
 }
 

@@ -1,5 +1,5 @@
 #include "fin-client.h" 
-//#include "esp_log.h"
+#include "esp_log.h"
 
 #include <thread>
 
@@ -75,8 +75,8 @@ namespace fin {
 
         auto end = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        //SP_LOGI( "BENCHMARK", "Think() took %lld milliseconds", duration.count() );
+        // ESP_LOGI( "BENCHMARK", "Think() took %lld milliseconds", duration.count() );
 
-        std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) );
     }
 }

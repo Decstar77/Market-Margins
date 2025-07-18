@@ -35,7 +35,7 @@ namespace fin {
             memcpy( data, symbol.c_str(), 4 );
         }
 
-        inline int AsInt() const { return *reinterpret_cast< const int* >( &data ); }
+        inline int AsInt() const { return *reinterpret_cast<const int *>(&data); }
 
         inline bool operator==( const Symbol & other ) const {
             return AsInt() == other.AsInt();
@@ -113,8 +113,8 @@ namespace fin {
 
         }
 
-        RpcCallData( const void * data, i32 length ) {
-            Write( data, length );
+        RpcCallData( const void * data, i32 length ) : length( length ) {
+            memcpy( buffer, data, length );
         }
 
         template<typename... _types_>
@@ -122,7 +122,7 @@ namespace fin {
             length = 1; // Make room for the size.
             Write( &funcId, sizeof( funcId ) );
             DoSerialize( args... );
-            buffer[0] = static_cast<byte>( length - 1 );
+            buffer[0] = static_cast<byte>(length - 1);
         }
 
         inline const byte * GetFullBuffer() const { return buffer; }

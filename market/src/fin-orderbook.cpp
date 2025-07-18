@@ -20,7 +20,7 @@ namespace fin {
     }
 
     OrderResult OrderBook::AddAsk( OrderEntry & entry ) {
-        //  LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
+        // LOG_INFO( "AddAsk: {} {}, {}", entry.symbol.AsString(), entry.price, entry.quantity );
         CompleteOrder( entry );
         asks.Push( entry );
         const i64 amount = ResolveBook();
