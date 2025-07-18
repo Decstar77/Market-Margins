@@ -96,46 +96,6 @@ namespace fin {
         std::function<_ret_( _args_... )> func;
     };
 
-    class RpcCallData {
-    public:
-        RpcCallData() {
-
-        }
-
-        RpcCallData( const void * data, i32 length ) {
-            this->data.Write( data, length );
-        }
-
-        template<typename... _types_>
-        inline void AddCall( i32 funcId, _types_... args ) {
-            data.Write( &funcId );
-            DoSerialize( args... );
-        }
-
-        inline const byte * Get() const {
-            return data.Get();
-        }
-
-    private:
-        template< typename _type_ >
-        inline void WriteSerializable( _type_ type ) {
-            static_assert(std::is_pointer<_type_>::value == false, "AddAction :: Cannot take pointers");
-            static_assert(is_vector<_type_>::value == false, "RpcBuffer cannot take Raw Lists, please cast/pass in a Span : list.GetSpan()");
-            data.Write( &type );
-        }
-
-        template< typename... _types_ >
-        inline void DoSerialize( _types_... args ) {
-            static_assert((... && !std::is_pointer_v<std::decay_t<_types_>>), "AddAction :: Cannot take pointers");
-            static_assert((... && !is_vector<std::decay_t<_types_>>::value), "RpcBuffer cannot take Raw Lists, please cast/pass in a Span : list.GetSpan()");
-            static_assert((... && !std::is_same_v<std::decay_t<_types_>, std::string>), "RpcBuffer can't use string/string_view, please use StringHolder");
-            (WriteSerializable( std::forward<_types_>( args ) ), ...);
-        }
-
-    private:
-        FixedBinaryBlob<256> data;
-    };
-
     class RpcTable {
     public:
         template<typename _ret_, typename ... _args_>
@@ -143,15 +103,14 @@ namespace fin {
             table[id] = holder;
         }
 
-        void Call( const RpcCallData & buffer ) {
-            const byte * callData = buffer.Get();
+        void Call( const byte * callData ) {
             const i32 funcId = *(reinterpret_cast<const i32 *>(callData));
             if ( table.contains( funcId ) == true ) {
                 const byte * offset = reinterpret_cast<const byte *>(callData) + sizeof( i32 );
                 table[funcId]->Call( offset );
             }
             else {
-                
+
             }
         }
 

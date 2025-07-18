@@ -107,32 +107,52 @@ namespace fin {
         char    data[256] = {};
     };
 
-    class RpcBuilder {
+    class RpcCallData {
     public:
-        RpcBuilder( RpcCall callId ) {
-            Write( static_cast<void *>(&callId), sizeof( RpcCall ) );
+        RpcCallData() {
+
         }
 
-        template<typename _type_>
-        inline void WriteArg( const _type_ & arg ) {
-            static_assert(std::is_same_v< std::decay_t<_type_>, std::string > == false, "Arg cannot be std::string.");
-            static_assert(std::is_same_v< std::decay_t<_type_>, std::string_view > == false, "Arg cannot be std::string_view.");
-            static_assert(std::is_same_v< _type_, const char * > == false, "Arg cannot be const char *.");
-            Write( static_cast<const void *> (&arg), sizeof( _type_ ) );
+        RpcCallData( const void * data, i32 length ) {
+            Write( data, length );
         }
 
-        const void * GetData() const { return static_cast<const void *>(buffer); };
-        i32             GetSize() const { return length; }
+        template<typename... _types_>
+        inline void Call( i32 funcId, _types_... args ) {
+            length = 1; // Make room for the size.
+            Write( &funcId, sizeof( funcId ) );
+            DoSerialize( args... );
+            buffer[0] = static_cast<byte>( length - 1 );
+        }
+
+        inline const byte * GetFullBuffer() const { return buffer; }
+        inline i32          GetFullLength() const { return length; }
+
+        inline const byte * GetCallBuffer() const { return buffer + 1; }
+        inline i32          GetCallLength() const { return length - 1; }
 
     private:
-        inline void Write( const void * data, i32 size ) {
-            memcpy( buffer + length, data, size );
-            length += size;
+        template< typename _type_ >
+        inline void WriteSerializable( _type_ type ) {
+            static_assert(std::is_pointer<_type_>::value == false, "AddAction :: Cannot take pointers");
+            Write( &type, sizeof( _type_ ) );
+        }
+
+        template< typename... _types_ >
+        inline void DoSerialize( _types_... args ) {
+            static_assert((... && !std::is_pointer_v<std::decay_t<_types_>>), "AddAction :: Cannot take pointers");
+            static_assert((... && !std::is_same_v<std::decay_t<_types_>, std::string>), "RpcBuffer can't use string/string_view, please use StringHolder");
+            (WriteSerializable( std::forward<_types_>( args ) ), ...);
+        }
+
+        inline void Write( const void * data, i32 length ) {
+            memcpy( buffer + this->length, data, length );
+            this->length += length;
         }
 
     private:
-        byte buffer[256] = {};
         i32 length = 0;
+        byte buffer[256] = {};
     };
 }
 

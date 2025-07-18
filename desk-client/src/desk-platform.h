@@ -7,7 +7,7 @@ namespace fin {
     void                TCPClientSendPacket( const void * data, int size );
 
     void                UDPClientSocket( const std::string_view & ip, const std::string_view & port );
-    void                UDPClientRecvPacket( PacketBuffer & buffer );
+    bool                UDPClientRecvPacket( PacketBuffer & buffer );
 
     DeviceInterface *   GetDeviceInterface();
 }

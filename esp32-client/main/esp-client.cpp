@@ -14,6 +14,7 @@ namespace fin {
     static const char * TAG = "CLIENT";
     static int tcp_socket = -1;
     static WaitQueue<PacketBuffer> tcpIncoming;
+    static SPSCQueue<PacketBuffer> udpIncoming( 100 );
 
     void tcp_client_task( void * pvParameters ) {
         char addr_str[128];
@@ -63,8 +64,6 @@ namespace fin {
             vTaskDelay( pdMS_TO_TICKS( 5000 ) );
         }
     }
-
-    static WaitQueue<PacketBuffer> udpIncoming;
 
     void udp_client_task( void * pvParameters ) {
         const char * multicast_ip = "239.255.0.1";
@@ -141,8 +140,8 @@ namespace fin {
         send( tcp_socket, data, size, 0 );
     }
 
-    void client_udp_recv( PacketBuffer & buffer ) {
-        udpIncoming.Pop( buffer );
+    bool client_udp_recv( PacketBuffer & buffer ) {
+        return udpIncoming.Pop( buffer );
     }
 
     void client_init() {

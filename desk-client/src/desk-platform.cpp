@@ -74,7 +74,7 @@ namespace fin {
 namespace fin {
     static SOCKET                   udpClientSocket = INVALID_SOCKET;
     static std::thread              udpReadThread;
-    static WaitQueue<PacketBuffer>  udpPacketQueue;
+    static SPSCQueue<PacketBuffer>  udpPacketQueue( 10000 );
 
     void UDPClientSocket( const std::string_view & ip, const std::string_view & port ) {
         WSADATA wsaData;
@@ -133,8 +133,8 @@ namespace fin {
             } );
     }
 
-    void UDPClientRecvPacket( PacketBuffer & buffer ) {
-        udpPacketQueue.Pop( buffer );
+    bool UDPClientRecvPacket( PacketBuffer & buffer ) {
+        return udpPacketQueue.Pop( buffer );
     }
 }
 
@@ -145,8 +145,8 @@ namespace fin {
             TCPClientSendPacket( data, size );
         }
 
-        void Recv( PacketBuffer & buffer ) override {
-            UDPClientRecvPacket( buffer ); 
+        bool Recv( PacketBuffer & buffer ) override {
+            return UDPClientRecvPacket( buffer ); 
         }
 
         void DisplayHeaderText( const char * text ) override {

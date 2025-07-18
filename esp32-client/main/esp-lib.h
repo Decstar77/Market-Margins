@@ -30,7 +30,7 @@ namespace fin {
     void                client_init();
     void                client_send( const void * data, int size );
 
-    void                client_udp_recv( PacketBuffer & buffer );
+    bool                client_udp_recv( PacketBuffer & buffer );
 
     void                display_init();
     void                display_set_header_text( const char * text );

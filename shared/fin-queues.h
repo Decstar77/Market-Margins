@@ -12,7 +12,7 @@ namespace fin {
     template<typename _type_>
     class SPSCQueue {
     public:
-        SPSCQueue( int size ) : data( size + 1 ), readPos( 0 ), writePos( 0 ) {
+        SPSCQueue( int size ) : readPos( 0 ), writePos( 0 ), data( size + 1 ) {
         }
 
         bool Push( const _type_ & d ) {

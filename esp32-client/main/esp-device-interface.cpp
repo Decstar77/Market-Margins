@@ -17,8 +17,8 @@ namespace fin {
         virtual void Send( const void * data, int size ) override {
             client_send( data, size );
         }
-        virtual void Recv( PacketBuffer & buffer ) override {
-            client_udp_recv( buffer );
+        virtual bool Recv( PacketBuffer & buffer ) override {
+            return client_udp_recv( buffer );
         }
         virtual void DisplayHeaderText( const char * text ) override {
             display_set_header_text( text );

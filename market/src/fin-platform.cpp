@@ -14,7 +14,7 @@ namespace fin {
     static std::vector<NetId> tcpClients;
 
     // NOTE: Small amount for now.
-    static SPSCQueue<PacketBuffer> packetQueue( 1024 );
+    static SPSCQueue<RpcCallData> packetQueue( 1024 );
 
     void TCPServerSocket( const std::string_view & port ) {
         WSADATA wsaData = {};
@@ -69,7 +69,7 @@ namespace fin {
                 while ( true ) {
                     std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
                     for ( auto & client : tcpClients ) {
-                        char buffer[512] = {};
+                        char buffer[1024] = {};
                         int bytesReceived = recv( client, buffer, sizeof( buffer ), 0 );
                         if ( bytesReceived == SOCKET_ERROR ) {
                             int err = WSAGetLastError();
@@ -84,11 +84,8 @@ namespace fin {
                             std::cout << "Connection closed\n";
                         }
                         else {
-                            PacketBuffer packet = {};
-                            packet.id = client;
-                            packet.length = bytesReceived;
-                            memcpy_s( packet.data, sizeof( packet.data ), buffer, bytesReceived );
-                            packetQueue.Push( packet );
+                            RpcCallData call( buffer, bytesReceived );
+                            packetQueue.Push( call );
                         }
                     }
                 }
@@ -101,17 +98,13 @@ namespace fin {
         }
     }
 
-    void TCPServerMulticastPacket( const PacketBuffer & buffer ) {
+    void TCPServerMulticastPacket( const RpcCallData & buffer ) {
         for ( auto & client : tcpClients ) {
-            send( client, (const char *)buffer.data, sizeof( buffer.data ), 0 );
+            send( client, (const char *)buffer.GetFullBuffer(), buffer.GetFullLength(), 0 );
         }
     }
 
-    void TCPServerSendPacket( const PacketBuffer & buffer ) {
-        send( buffer.id, (const char *)buffer.data, sizeof( buffer.data ), 0 );
-    }
-
-    bool TCPServerReceivePacket( PacketBuffer & buffer ) {
+    bool TCPServerReceiveRPC( RpcCallData & buffer ) {
         return packetQueue.Pop( buffer );
     }
 }
