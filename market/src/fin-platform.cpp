@@ -72,7 +72,7 @@ namespace fin {
                 std::vector<char> recvBuffer;
 
                 while ( true ) {
-                    std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
+                    //std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
                     for ( auto & client : tcpClients ) {
                         char buffer[1024] = {};
                         int bytesReceived = recv( client, buffer, sizeof( buffer ), 0 );

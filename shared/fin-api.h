@@ -24,14 +24,13 @@ namespace fin {
     class Symbol {
     public:
         Symbol() {
-            memset( data, 0, 4 );
         }
 
-        inline Symbol( const char * symbol ) {
+        Symbol( const char * symbol ) {
             memcpy( data, symbol, 4 );
         }
 
-        inline Symbol( const std::string & symbol ) {
+        Symbol( const std::string & symbol ) {
             memcpy( data, symbol.c_str(), 4 );
         }
 
@@ -50,15 +49,15 @@ namespace fin {
         }
 
     private:
-        char data[4];
+        char data[4] = {};
     };
 
     struct OrderEntry {
-        i64         id;
-        i64         time;
-        i64         price;
-        i64         quantity;
-        OrderType   type;
+        i64         id = 0;
+        i64         time = 0;
+        i64         price = 0;
+        i64         quantity = 0;
+        OrderType   type = OrderType::MarketOrder;
         Symbol      symbol;
     };
 
@@ -109,10 +108,7 @@ namespace fin {
 
     class RpcCallData {
     public:
-        RpcCallData() {
-
-        }
-
+        RpcCallData() = default;
         RpcCallData( const void * data, i32 length ) : length( length ) {
             memcpy( buffer, data, length );
         }
@@ -125,11 +121,11 @@ namespace fin {
             buffer[0] = static_cast<byte>(length - 1);
         }
 
-        inline const byte * GetFullBuffer() const { return buffer; }
-        inline i32          GetFullLength() const { return length; }
+        [[nodiscard]] inline const byte * GetFullBuffer() const { return buffer; }
+        [[nodiscard]] inline i32          GetFullLength() const { return length; }
 
-        inline const byte * GetCallBuffer() const { return buffer + 1; }
-        inline i32          GetCallLength() const { return length - 1; }
+        [[nodiscard]] inline const byte * GetCallBuffer() const { return buffer + 1; }
+        [[nodiscard]] inline i32          GetCallLength() const { return length - 1; }
 
     private:
         template< typename _type_ >

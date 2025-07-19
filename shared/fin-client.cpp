@@ -1,5 +1,5 @@
 #include "fin-client.h" 
-#include "esp_log.h"
+//#include "esp_log.h"
 
 #include <thread>
 

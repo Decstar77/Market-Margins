@@ -39,25 +39,33 @@ namespace fin {
 
     class MarketMakerClient : public MarketClient {
     public:
-        MarketMakerClient( DeviceInterface * device ) : MarketClient( Strategy::MarketMaker, device ) { device->DisplayHeaderText( "Market Maker" ); }
+        MarketMakerClient( DeviceInterface * device ) : MarketClient( Strategy::MarketMaker, device ) {
+            device->DisplayHeaderText( "Market Maker" );
+        }
+
         virtual void Think() override;
     };
 
     class MarketTakerClient : public MarketClient {
     public:
-        MarketTakerClient( DeviceInterface * device ) : MarketClient( Strategy::MarketTaker, device ) { device->DisplayHeaderText( "Market Taker" ); }
+        MarketTakerClient( DeviceInterface * device ) : MarketClient( Strategy::MarketTaker, device ) {
+            device->DisplayHeaderText( "Market Taker" );
+        }
+
         virtual void Think() override;
     };
 
     class RandomClient : public MarketClient {
     public:
-        RandomClient( DeviceInterface * device ) : MarketClient( Strategy::Random, device ), gen( rd() ), dis( 0.0, 1.0 ) { device->DisplayHeaderText( "Random Trader" ); }
+        RandomClient( DeviceInterface * device ) : MarketClient( Strategy::Random, device ), gen( rd() ),
+                                                   dis( 0.0, 1.0 ) { device->DisplayHeaderText( "Random Trader" ); }
+
         virtual void Think() override;
 
     private:
         std::random_device rd;
         std::mt19937 gen;
-        std::uniform_real_distribution<> dis;
+        std::uniform_real_distribution< > dis;
     };
 
     class StrategyFactory {

@@ -57,8 +57,6 @@ using namespace fin;
     2. TCP is a stream-oriented protocol, not message-oriented like UDP.
         - It may coalesce multiple small send() calls into a single packet (Nagle’s algorithm and OS-level buffering).
         - 
-
-
 */
 
 #define PROD 0
@@ -151,31 +149,33 @@ int main() {
             }
         } );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Bid), new RpcFunction<void, OrderEntry>( [&book, &orderCompleteQueue]( OrderEntry entry )
-        {
-            const OrderResult result = book.AddBid( entry );
-            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Bid, entry, result );
-        } ) );
+    table.Register( static_cast< i32 >( RpcCall::PlaceOrder_Bid ), new RpcFunction< void, OrderEntry >(
+                        [&book, &orderCompleteQueue] ( OrderEntry entry ) {
+                            const OrderResult result = book.AddBid( entry );
+                            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Bid, entry, result );
+                        } ) );
 
-    table.Register( static_cast<i32>(RpcCall::PlaceOrder_Ask), new RpcFunction<void, OrderEntry>( [&book, &orderCompleteQueue]( OrderEntry entry )
-        {
-            const OrderResult result = book.AddAsk( entry );
-            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Ask, entry, result );
-        } ) );
+    table.Register( static_cast< i32 >( RpcCall::PlaceOrder_Ask ), new RpcFunction< void, OrderEntry >(
+                        [&book, &orderCompleteQueue] ( OrderEntry entry ) {
+                            const OrderResult result = book.AddAsk( entry );
+                            AddToCompletedQueue( orderCompleteQueue, RpcCall::PlaceOrder_Ask, entry, result );
+                        } ) );
 
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Bid), new RpcFunction<void, i64>( [&book, &orderCompleteQueue]( i64 id )
-        {
-            const OrderResult result = book.RemoveBid( id );
-            OrderEntry entry = {}; entry.id = id;
-            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Bid, entry, result );
-        } ) );
+    table.Register( static_cast< i32 >( RpcCall::CancelOrder_Bid ), new RpcFunction< void, i64 >(
+                        [&book, &orderCompleteQueue] ( i64 id ) {
+                            const OrderResult result = book.RemoveBid( id );
+                            OrderEntry entry = {};
+                            entry.id = id;
+                            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Bid, entry, result );
+                        } ) );
 
-    table.Register( static_cast<i32>(RpcCall::CancelOrder_Ask), new RpcFunction<void, i64>( [&book, &orderCompleteQueue]( i64 id )
-        {
-            const OrderResult result = book.RemoveAsk( id );
-            OrderEntry entry = {}; entry.id = id;
-            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Ask, entry, result );
-        } ) );
+    table.Register( static_cast< i32 >( RpcCall::CancelOrder_Ask ), new RpcFunction< void, i64 >(
+                        [&book, &orderCompleteQueue] ( i64 id ) {
+                            const OrderResult result = book.RemoveAsk( id );
+                            OrderEntry entry = {};
+                            entry.id = id;
+                            AddToCompletedQueue( orderCompleteQueue, RpcCall::CancelOrder_Ask, entry, result );
+                        } ) );
 
     TCPServerSocket( "54000" );
     UDPServerSocket( "54001", "239.255.0.1" );
@@ -191,7 +191,7 @@ int main() {
             fin::RpcCallData rpcCall( recBuffer.data, recBuffer.length );
             table.Call( rpcCall );
         }
-#else 
+#else
         std::this_thread::sleep_for( std::chrono::milliseconds( 30 ) );
 
         RpcCallData rpcCall = {};

@@ -137,7 +137,7 @@ namespace fin {
             return;
         }
 
-        int v = send( tcp_socket, data, size, 0 );
+        send( tcp_socket, data, size, 0 );
         // ESP_LOGI( TAG, "Send was %d", v );
     }
 
